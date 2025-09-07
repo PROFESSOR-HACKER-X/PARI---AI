@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PARI-- AI ENHANCE PHOTOS</title>
     <style>
+        /* Your existing CSS remains unchanged */
         * {
             margin: 0;
             padding: 0;
@@ -512,7 +513,7 @@
         let ctx = null;
         
         // Event listeners for drag and drop
-        uploadSection.addEventListener('dragover', (e) => {
+        uploadSection.addEventListener('dragoover', (e) => {
             e.preventDefault();
             uploadSection.classList.add('drag-over');
         });
@@ -787,9 +788,9 @@
                 const editedImageData = canvas.toDataURL('image/jpeg');
                 
                 // Create different enhanced versions
-                const enhanced1 = applyEnhancement('brightness');
-                const enhanced2 = applyEnhancement('contrast');
-                const enhanced3 = applyEnhancement('vibrant');
+                const enhanced1 = await applyEnhancement('brightness');
+                const enhanced2 = await applyEnhancement('contrast');
+                const enhanced3 = await applyEnhancement('vibrant');
                 
                 // Display results
                 displayResults([enhanced1, enhanced2, enhanced3]);
@@ -807,68 +808,81 @@
         }
         
         function applyEnhancement(type) {
-            // Create a temporary canvas for enhancement
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            
-            // Draw the current edited image
-            const img = new Image();
-            img.src = canvas.toDataURL('image/jpeg');
-            
-            tempCtx.drawImage(img, 0, 0);
-            
-            // Get image data
-            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-            const data = imageData.data;
-            
-            // Apply different enhancements based on type
-            for (let i = 0; i < data.length; i += 4) {
-                switch(type) {
-                    case 'brightness':
-                        // Increase brightness
-                        data[i] = Math.min(255, data[i] * 1.15);     // Red
-                        data[i+1] = Math.min(255, data[i+1] * 1.15); // Green
-                        data[i+2] = Math.min(255, data[i+2] * 1.15); // Blue
-                        break;
-                    case 'contrast':
-                        // Increase contrast
-                        const factor = 1.4;
-                        const contrastAdjust = -128 * factor + 128;
-                        data[i] = Math.min(255, Math.max(0, data[i] * factor + contrastAdjust));
-                        data[i+1] = Math.min(255, Math.max(0, data[i+1] * factor + contrastAdjust));
-                        data[i+2] = Math.min(255, Math.max(0, data[i+2] * factor + contrastAdjust));
-                        break;
-                    case 'vibrant':
-                        // Increase saturation with optimized algorithm
-                        const r = data[i], g = data[i+1], b = data[i+2];
-                        const max = Math.max(r, g, b);
-                        const adjustment = 1.25;
-                        
-                        if (r === max) {
-                            data[i] = Math.min(255, r * adjustment);
-                            data[i+1] = g * 0.95;
-                            data[i+2] = b * 0.95;
-                        } else if (g === max) {
-                            data[i] = r * 0.95;
-                            data[i+1] = Math.min(255, g * adjustment);
-                            data[i+2] = b * 0.95;
-                        } else {
-                            data[i] = r * 0.95;
-                            data[i+1] = g * 0.95;
-                            data[i+2] = Math.min(255, b * adjustment);
+            return new Promise((resolve) => {
+                // Create a temporary canvas for enhancement
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                
+                // Draw the current edited image
+                const img = new Image();
+                img.onload = function() {
+                    tempCtx.drawImage(img, 0, 0);
+                    
+                    // Get image data
+                    const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                    const data = imageData.data;
+                    
+                    // Apply different enhancements based on type
+                    for (let i = 0; i < data.length; i += 4) {
+                        switch(type) {
+                            case 'brightness':
+                                // Enhanced brightness algorithm for dark images
+                                data[i] = Math.min(255, data[i] + 40);     // Red
+                                data[i+1] = Math.min(255, data[i+1] + 40); // Green
+                                data[i+2] = Math.min(255, data[i+2] + 40); // Blue
+                                break;
+                            case 'contrast':
+                                // Enhanced contrast algorithm for dark images
+                                const factor = 1.6;
+                                const contrastAdjust = -128 * factor + 128;
+                                data[i] = Math.min(255, Math.max(0, data[i] * factor + contrastAdjust));
+                                data[i+1] = Math.min(255, Math.max(0, data[i+1] * factor + contrastAdjust));
+                                data[i+2] = Math.min(255, Math.max(0, data[i+2] * factor + contrastAdjust));
+                                break;
+                            case 'vibrant':
+                                // Enhanced vibrant algorithm for dark images
+                                const r = data[i], g = data[i+1], b = data[i+2];
+                                
+                                // Check if the pixel is very dark (near black)
+                                if (r < 20 && g < 20 && b < 20) {
+                                    // Add some minimal color to prevent pure black
+                                    data[i] = Math.min(255, r + 15);
+                                    data[i+1] = Math.min(255, g + 15);
+                                    data[i+2] = Math.min(255, b + 15);
+                                } else {
+                                    // Normal vibrant enhancement
+                                    const max = Math.max(r, g, b);
+                                    const adjustment = 1.3;
+                                    
+                                    if (r === max) {
+                                        data[i] = Math.min(255, r * adjustment);
+                                        data[i+1] = g * 0.95;
+                                        data[i+2] = b * 0.95;
+                                    } else if (g === max) {
+                                        data[i] = r * 0.95;
+                                        data[i+1] = Math.min(255, g * adjustment);
+                                        data[i+2] = b * 0.95;
+                                    } else {
+                                        data[i] = r * 0.95;
+                                        data[i+1] = g * 0.95;
+                                        data[i+2] = Math.min(255, b * adjustment);
+                                    }
+                                }
+                                break;
                         }
-                        break;
-                }
-            }
-            
-            // Put modified image data back to canvas
-            tempCtx.putImageData(imageData, 0, 0);
-            
-            // Return as data URL with higher quality
-            return tempCanvas.toDataURL('image/jpeg', 0.95);
+                    }
+                    
+                    // Put modified image data back to canvas
+                    tempCtx.putImageData(imageData, 0, 0);
+                    
+                    // Return as data URL with higher quality
+                    resolve(tempCanvas.toDataURL('image/jpeg', 0.95));
+                };
+                img.src = canvas.toDataURL('image/jpeg');
+            });
         }
         
         function displayResults(enhancedImages) {
